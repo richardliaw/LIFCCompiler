@@ -132,54 +132,9 @@ AST *build_ast (lexer *lex) {
 		level->type = node_STRING;
 		level->val = current;
 		break;
-	case(token_KEYWORD):
-		key_type node_key = lookup_keywords(level, lex);
-		node_type level_node = node_key->enums;
-		level->type = level_node;
-		level->val = current;
-		int arg = node_key->args;
-		if(arg == -1){
-			//need to check for next matching closing parentheses
-		}
-		for(int i = 0; i < arg; i++ ){
-			AST_lst *list = calloc(sizeof(AST_lst));
-			list->val = build_ast(lex);
-			if(!level->last_child){
-				level->children = list;
-			}else{
-				level->last_child->next = list;
-			}
-			//first one add to children
-			level->last_child = list;
-		}
-		break;
-	case(token_END):
-		return NULL;
-	case(token_NAME):
-		//TODO: Ask how to deal with declared things
-		//can be function call
-		//can be variable
-		break;
 	default:
 		break;
-
 	}
-
-
-		//case name
-			//then check inside smap num_args
-
-		//case keyword
-			//node_type = check which keyword using lookup_keyword_enum
-			//deal with in keyword_cases
-			//
-
-		//case end
-		//case sentinel - TODO Q: What happens if nothing? exit?
-
-	//store as *val, TODO Q: should I make copy of original source text
-	//
-	//check node
     return NULL;
 }
 node_type name_cases(AST st, lexer *lex){//not sure
