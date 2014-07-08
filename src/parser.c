@@ -121,19 +121,13 @@ AST *build_ast (lexer *lex) {
 		break;
 	case(token_OPEN_PAREN):
 		//if open-paren, return build_ast to take next token
+		//check first token and all the rest go into children
 		return build_ast(lex);
 	case(token_CLOSE_PAREN):
 		return NULL;
-	case(token_INT):
-		level->type = node_INT;
-		level->val = current;
-		break;
-	case(token_STRING):
-		level->type = node_STRING;
-		level->val = current;
-		break;
 	default:
-		break;
+		level->val = current;
+		return level;
 	}
     return NULL;
 }
