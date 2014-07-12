@@ -68,14 +68,14 @@ key_type_t key_table [] = {
 	{  "/",				node_DIV, 		2 },
 	{  "lt",			node_LT, 			2 },
 	{  "eq",			node_EQ, 			2 },
-	{  "function",		node_FUNCTION, 	1 },
+	{  "function",		node_FUNCTION, 	2 },
 	{  "struct",		node_STRUCT, 		2 },
 	{  "arrow",			node_ARROW, 		2 },
 	{  "assign",		node_ASSIGN, 		2 },
 	{  "if",			node_IF, 			3 },
 	{  "while",			node_WHILE, 		2 },
 	{  "for",			node_FOR, 		4 },
-	{  "sequence",		node_SEQ, 		-1 },
+	{  "sequence",		node_SEQ, 		-2 },
 	{  "intprint",		node_I_PRINT, 	1 },
 	{  "stringprint",	node_S_PRINT, 	1 },
 	{  "readint",		node_READ_INT, 	0 },
@@ -114,13 +114,16 @@ void parse_close() {
     smap_del(keyword_str_to_enum);
 }
 
+
 AST *build_ast (lexer *lex) {
     /* TODO: Implement me. */
     /* Hint: switch statements are pretty cool, and they work 
      *       brilliantly with enums. */
 	AST *level = safe_calloc(sizeof(AST)); //make new AST
-	read_token(lex);
 	char *current = lex->buffer; //obtain next token
+
+	level->val = safe_calloc(strlen(current)*sizeof(char) + 1);
+	strcpy(level->val, lex->buffer);
 
 	switch(lex->type){
 	case(token_SENTINEL):
@@ -128,6 +131,7 @@ AST *build_ast (lexer *lex) {
 	case(token_OPEN_PAREN):
 		//if open-paren, return build_ast to take next token
 		//check first token and all the rest go into children
+		read_token(lex);
 		level = build_ast(lex);
 		AST *child;
 		while((child = build_ast(lex)) != NULL){
@@ -143,14 +147,15 @@ AST *build_ast (lexer *lex) {
 		if(level->type == node_FUNCTION){ //if there is a function, add to argument map
 			add_function_args(level);
 		}
+		read_token(lex);
 		return level;
 	case(token_CLOSE_PAREN):
 		return NULL;
 	case(token_KEYWORD):
 		level->type = lookup_keyword_enum(current); //if keyword doesn't match anything
 		if((int)level->type == -1){
-			printf("This is a problem");
-			exit(0);
+			fprintf(stderr, "This is a problem");
+			exit(1);
 		}
 		break;
 	case(token_INT):
@@ -160,7 +165,10 @@ AST *build_ast (lexer *lex) {
 		level->type = node_STRING;
 		break;
 	case(token_END):
-		break;
+		//Making assumption that there is no way the parser will see a EOF
+		fprintf(stderr, "This is a problem - Incorrect Usage of Parentheses");
+		exit(1);
+
 	case(token_NAME):
 		if(lex->prev == token_OPEN_PAREN){ //if a "var/name", check if it is CALL or VARIABLE
 			level->type = node_CALL;
@@ -174,7 +182,7 @@ AST *build_ast (lexer *lex) {
 
 		break;
 	}
-	level->val = current;
+	read_token(lex);
     return level;
 
 }
@@ -211,7 +219,7 @@ void add_function_decl(AST *ast){
 }
 
 void free_ast (AST *ptr) {
-    /* TODO: not DONE */
+    /* TODO: not DONE - NEED TO FREE STRINGS */
 	//dfs
 	AST_lst *childs = ptr->children;
 	while(ptr->last_child != NULL){
@@ -233,20 +241,35 @@ void check_tree_shape(AST *ptr) {
 
 	//WHAT ABOUT STRUCT - don't need to check probably,
 	node_type check = ptr->type;
+	AST_lst *current = ptr->children;
 	int arg_count;
-	if(check == node_INT || check == node_STRING){
+	switch(check){
+
+	case(node_INT):
+	case(node_STRING):
+	case(node_VAR):
 		arg_count = 0;
-	}else if(check == node_CALL){
+		break;
+	case(node_CALL):
 		arg_count = lookup_function_args(ptr->val);
-	}else{
+		break;
+	case(node_SEQ):
+	case(node_STRUCT):
+		current = ptr->children;
+		while(current != NULL){
+			check_tree_shape(current->node);
+			current = current->next;
+		}
+		return;
+	default:
 		arg_count = lookup_arg(check);
+		break;
 	}
 
 	if(AST_lst_len(ptr->children) != arg_count){
-		printf("This is a problem - Inconsistency between arg_count and expected");
-		exit(0);
+		fprintf(stderr, "This is a problem - Inconsistency between arg_count and expected");
+		exit(1);
 	}
-	AST_lst *current = ptr->children;
 	for(int x = 0; x < arg_count; x++){
 		check_tree_shape(current->node);
 		current = current->next;
@@ -349,7 +372,8 @@ int lookup_arg(node_type type){
 		}
 		current = &key_table[++x];
 	}
-	return 0;
+//	fprintf(stderr, "There is no such type - Incorrect Syntax");
+	return -1;
 
 }
 

@@ -1,9 +1,8 @@
 ;test 1
 (stringprint "hello world")
 
+;(assign - 3)
 ;test2
-10
-; expect 10
 
 ;test3
 (+ 137 349)
@@ -21,10 +20,10 @@
 (+ 2.7 10)
 ; expect 12.7
 
-(+ 21 35 12 7)
+;(+ 21 35 12 7)
 ; expect 75
 
-(* 25 4 12)
+;(* 25 4 12)
 ; expect 1200
 
 (+ (* 3 5) (- 10 6))
@@ -48,14 +47,17 @@
 
 
 (assign size 2)
-(size)
+size
 
-(function (a-plus-abs-b a b)
-  ((if (> b 0) + -) a b))
-(a-plus-abs-b 3 -2)
+(function (a_plus_abs_b a b)
+  (if (lt b 0) (+ a b) (- a b)))
+(a_plus_abs_b 3 -2)
 
 (* 5 size)
 ; expect 10
+
+
+
 
 (assign pi 3.14159)
 (assign radius 10)
@@ -77,17 +79,16 @@
 (square (square 3))
 ; expect 81
 
-(function (sum-of-squares x y)
+(function (sum_of_squares x y)
   (+ (square x) (square y)))
-(sum-of-squares 3 4)
+(sum_of_squares 3 4)
 ; expect 25
 
 (function (f a)
-  (sum-of-squares (+ a 1) (* a 2)))
+  (sum_of_squares (+ a 1) (* a 2)))
 (f 5)
 
 
-(function (print-and-square x)
-  (print x)
-  (square x))
-(print-and-square 12)
+(function (print_and_square x)
+  (sequence (intprint x) (square x)))
+(print_and_square 12)

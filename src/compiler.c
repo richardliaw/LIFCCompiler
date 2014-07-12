@@ -40,17 +40,21 @@ void compile(char *filename) {
     /* Run parser. */
     parse_init();
     printf("Done\n");
- 	for(int x = 0; x < 100; x ++){
-    	read_token(&luthor);
-    	printf("%s\n", luthor.buffer);
- 	}
-//    while (peek_type(&luthor) != token_END) {
-//	AST *ast = build_ast(&luthor);
-//	append_ast_to_top_level(ast);
-//	check_tree_shape(ast);
-//	gather_decls(ast, "", 1);
-//    }
-//
+// 	while(luthor.type != token_END){
+//    	read_token(&luthor);
+//    	printf("%s\n", luthor.buffer);
+// 	}
+    int count = 1;
+    while (peek_type(&luthor) != token_END) {
+		AST *ast = build_ast(&luthor);
+		append_ast_to_top_level(ast);
+		check_tree_shape(ast);
+		printf("%d done\n", count);
+		count ++;
+		gather_decls(ast, "", 1);
+
+    }
+
 //    /* Run code generation. */
 //    for (size_t i = 0; i < num_top_level_asts; i += 1) {
 //    	emit_strings(top_level_asts[i]);
@@ -64,9 +68,9 @@ void compile(char *filename) {
 //    	emit_functions(top_level_asts[i]);
 //    }
 //
-//    /* Cleanup. */
-//    close_file(&luthor);
-//    parse_close();
+    /* Cleanup. */
+    close_file(&luthor);
+    parse_close();
 //    for (size_t i = 0; i < num_top_level_asts; i += 1) {
 //    	free_ast(top_level_asts[i]);
 //    }

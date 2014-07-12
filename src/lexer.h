@@ -48,4 +48,5 @@ token_type peek_type(lexer *lex);
  *  is called, so be careful. */
 char *peek_value(lexer *lex);
 
+
 #endif
