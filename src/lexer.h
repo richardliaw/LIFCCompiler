@@ -21,6 +21,7 @@ typedef struct lexer {
     char *buffer;
     /** Location in which to store the type of the most recent token. */
     token_type type;
+    token_type prev;
     /** Tracks the current size of the buffer. */
     size_t buff_len;
 } lexer;

@@ -36,38 +36,43 @@ void compile(char *filename) {
     /* Initialize lexer. */
     init_lex(&luthor);
     open_file(&luthor, filename);
-    
+    printf("Checkpoint\n");
     /* Run parser. */
     parse_init();
-    while (peek_type(&luthor) != token_END) {
-	AST *ast = build_ast(&luthor);
-	append_ast_to_top_level(ast);
-	check_tree_shape(ast);
-	gather_decls(ast, "", 1);
-    }
-
-    /* Run code generation. */
-    for (size_t i = 0; i < num_top_level_asts; i += 1) {
-    	emit_strings(top_level_asts[i]);
-    }
-    emit_static_memory();
-    for (size_t i = 0; i < num_top_level_asts; i += 1) {
-    	emit_main(top_level_asts[i]);
-    }
-    emit_exit();
-    for (size_t i = 0; i < num_top_level_asts; i += 1) {
-    	emit_functions(top_level_asts[i]);
-    }	
-
-    /* Cleanup. */
-    close_file(&luthor);
-    parse_close();
-    for (size_t i = 0; i < num_top_level_asts; i += 1) {
-    	free_ast(top_level_asts[i]);
-    }
-    if (top_level_asts) {
-    	free(top_level_asts);
-    }
+    printf("Done\n");
+ 	for(int x = 0; x < 100; x ++){
+    	read_token(&luthor);
+    	printf("%s\n", luthor.buffer);
+ 	}
+//    while (peek_type(&luthor) != token_END) {
+//	AST *ast = build_ast(&luthor);
+//	append_ast_to_top_level(ast);
+//	check_tree_shape(ast);
+//	gather_decls(ast, "", 1);
+//    }
+//
+//    /* Run code generation. */
+//    for (size_t i = 0; i < num_top_level_asts; i += 1) {
+//    	emit_strings(top_level_asts[i]);
+//    }
+//    emit_static_memory();
+//    for (size_t i = 0; i < num_top_level_asts; i += 1) {
+//    	emit_main(top_level_asts[i]);
+//    }
+//    emit_exit();
+//    for (size_t i = 0; i < num_top_level_asts; i += 1) {
+//    	emit_functions(top_level_asts[i]);
+//    }
+//
+//    /* Cleanup. */
+//    close_file(&luthor);
+//    parse_close();
+//    for (size_t i = 0; i < num_top_level_asts; i += 1) {
+//    	free_ast(top_level_asts[i]);
+//    }
+//    if (top_level_asts) {
+//    	free(top_level_asts);
+//    }
 }
 
 int main(int argc, char* argv[]) {
@@ -77,3 +82,4 @@ int main(int argc, char* argv[]) {
     compile(argv[1]);
     return 0;
 }
+

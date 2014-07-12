@@ -5,6 +5,7 @@
 #include "util/util.h"
 #include "lexer.h"
 
+
 typedef enum node_type {node_INT /* integer literal */,
 			node_STRING /* string literal*/,
 
@@ -35,13 +36,27 @@ typedef enum node_type {node_INT /* integer literal */,
 
 typedef struct AST AST;
 typedef struct AST_lst AST_lst;
-typedef struct key_type key_type;
+typedef struct key_type key_type_t;
+
+typedef struct string_node string_struct;
+
+struct string_node{
+	char *string_value;
+	char *name;
+	string_struct *next;
+};
 
 struct key_type {
 	char *keywords;
-	int enums;
+	node_type enums;
 	int args;
-} key_type;
+};
+
+struct map_list{
+	char *string_value;
+	char *name;
+	string_struct *next;
+};
 
 
 struct AST {
@@ -52,7 +67,7 @@ struct AST {
 };
 
 struct AST_lst {
-    AST *val;
+    AST *node;
     AST_lst *next;
 };
 
@@ -80,13 +95,31 @@ void gather_decls(AST *ast, char *env_func, int is_top_level);
 
 /** Returns the node_type corresponding to the string STR, or -1 if no node_type 
  *  corresponds. */
-//node_type lookup_keyword_enum(char *str);
+node_type lookup_keyword_enum(char *str);
 
 /** Returns the number of nodes in LST. */
 size_t AST_lst_len(AST_lst *lst);
 
-/** Holds all of the declarations made throughout the program. */
+void add_function_args(AST *ast);
+
+void add_function_decl(AST *ast);
+
+void store_string(char *variable, char *string);
+
+int lookup_arg(node_type type);
+
+node_type lookup_keyword_enum(char *str);
+
+int lookup_function_args(char *fn);
+
+
+
+
+
+/** Holds all of the declarations made throughout the program. Holds Trees */
 extern smap *decls;
+
+extern smap *declFrames;
 
 /** Maps from function names to the size of their stack frames. */
 extern smap *stack_sizes;
@@ -99,6 +132,9 @@ extern smap *strings;
 
 extern smap *keyword_str_to_enum;
 
-extern smap *key_enum_arg;
+
+extern string_struct *string_list;
+
+extern string_struct *current_string;
 
 #endif

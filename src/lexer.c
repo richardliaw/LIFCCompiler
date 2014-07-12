@@ -13,6 +13,7 @@ void init_lex(lexer *luthor) {
     luthor->buffer = NULL;
     luthor->type = token_SENTINEL;
     luthor->buff_len = 0;
+    luthor->prev = 0;
 }
 
 void open_file(lexer *lex, char *filename) {
@@ -23,6 +24,7 @@ void open_file(lexer *lex, char *filename) {
 	}
 	lex->buff_len = INIT_BUFFER_SIZE;
 	lex->buffer = safe_calloc(INIT_BUFFER_SIZE * sizeof(char));
+
     }
 }
 
@@ -41,12 +43,24 @@ void read_token(lexer *lex) {
 	//if parenthesis, then return
 	int integerCheck = 1;
 	int c;
-	if((c = fgetc(*(lex->file))) == EOF){
+
+	if(lex->type != token_SENTINEL){
+		lex->prev = lex->type;
+	}
+	if((c = fgetc(lex->file)) == EOF){
 		lex->type = token_END;
 		return;
 	}
-	char pointer = lex->buffer;
+	char *pointer = lex->buffer;
 	switch (c){
+
+	//for comments
+	case ';':
+		while((c = fgetc(lex->file)) != '\n');
+		ungetc(c, lex->file);
+		read_token(lex);
+		return;
+
 	case '(':
 		lex->type = token_OPEN_PAREN;
 		*(pointer) = c;
@@ -56,10 +70,10 @@ void read_token(lexer *lex) {
 		*(pointer) = c;
 		break;
 	case '\"':
-		while((c = fgetc(*(lex->file))) != '\"'){
+		while((c = fgetc(lex->file)) != '\"'){
 			*pointer++ = c;
 			if(c == '\\'){
-				c = fgetc(*(lex->file));
+				c = fgetc(lex->file);
 				*pointer++ = c;
 
 			}
@@ -67,28 +81,28 @@ void read_token(lexer *lex) {
 		lex->type = token_STRING;
 		break;
 	case ' ':
-		while((c = fgetc(*(lex->file))) == ' ');
-		ungetc();
+		while((c = fgetc(lex->file)) == ' ');
+		ungetc(c, lex->file);
 		read_token(lex);
-		break;
+		return;
 	default:
 		do{
 			if((c != 45 && c != 46 && c < 48) || c > 59){ //an int
 				integerCheck = 0;
 			}
 			if(c == ')' || c == ' ' || c =='('){
-				ungetc();
+				ungetc(c, lex->file);
 				break;
 			}else if(c == '\n'){
 				//ensure that there is incrementation in fgetc
 				continue;
 			}
 			*pointer++ = c;
-		}while((c = fgetc(*(lex->file))) != EOF);
+		}while((c = fgetc(lex->file)) != EOF);
 
 		if(integerCheck){
 			lex->type = token_INT;
-		}else if(lookup_keyword_enum(lex->buffer) != -1){
+		}else if((int)lookup_keyword_enum(lex->buffer) != -1){
 			lex->type = token_KEYWORD;
 		}else{
 			lex->type = token_NAME;
@@ -96,7 +110,8 @@ void read_token(lexer *lex) {
 		break;
 
 	}
-	*pointer++ = '\0';
+	*++pointer = '\0';
+
 
 	//if close paren, then ungetc
     /* HINT: fgetc() and ungetc() could be pretty useful here. */
