@@ -97,8 +97,6 @@ void gather_decls(AST *ast, char *env_func, int is_top_level);
  *  corresponds. */
 node_type lookup_keyword_enum(char *str);
 
-/** Returns the number of nodes in LST. */
-size_t AST_lst_len(AST_lst *lst);
 
 void add_function_args(AST *ast);
 
@@ -113,13 +111,13 @@ node_type lookup_keyword_enum(char *str);
 int lookup_function_args(char *fn);
 
 
+/** Returns the number of nodes in LST. */
+size_t AST_lst_len(AST_lst *lst);
 
 
 
-/** Holds all of the declarations made throughout the program. Holds Trees */
+/** Holds all of the declarations made throughout the program. */
 extern smap *decls;
-
-extern smap *declFrames;
 
 /** Maps from function names to the size of their stack frames. */
 extern smap *stack_sizes;

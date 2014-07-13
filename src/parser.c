@@ -177,19 +177,13 @@ AST *build_ast (lexer *lex) {
 			level->type = node_VAR;
 		}
 		break;
-
 	default:
-
 		break;
 	}
 	read_token(lex);
     return level;
 
 }
-
-/*
- * Check the number of arguments a specific node has
- */
 
 void add_function_args(AST *ast){
 	if(ast->type != node_FUNCTION){
@@ -200,21 +194,6 @@ void add_function_args(AST *ast){
 		char *name = declarations_tree->val;
 		int num_of_args = AST_lst_len(declarations_tree->children);
 		smap_put(num_args, name, num_of_args);
-	}
-}
-
-/*
- *
- */
-void add_function_decl(AST *ast){
-	if(ast->type != node_FUNCTION){
-			printf("Miscall");
-			exit(0);
-	}else{
-		AST *declarations_tree = ast->children->node;
-		char *name = declarations_tree->val;
-		AST *func_body = ast->children->next->node;
-		smap_put(decls, name, (int)func_body); //may be a problem
 	}
 }
 
@@ -285,70 +264,86 @@ void store_string(char *variable, char *string){
 
 }
 
+char * str_to_scope_key(char *str, char* env){
+	char *newKey = safe_calloc(sizeof(char)*(strlen(str) + strlen(env) + 2));
+	strcpy(newKey, str);
+	strcat(newKey, "$");
+	strcat(newKey, env);
+	return newKey;
+}
+
 void gather_decls(AST *ast, char *env, int is_top_level) {
     /* TODO: Implement me. */
     /* Hint: switch statements are pretty cool, and they work 
      *       brilliantly with enums. */
-	//scope is defined by 
-	node_type type = ast->type;
+
+	node_type current_type = ast->type;
+	char *current_string = ast->val;
+	char *newKey = str_to_scope_key(current_string, env);
+
 	AST_lst *child_list = ast->children;
+	char *new_env = env;
 
-	char *key = child_list->node->val;   //first argument VALUE
-	AST *value = child_list->next->node; //second argument tree
+	//ONLY FOR FUNCTIONS..
+//	char *key = child_list->node->val;   //first argument VALUE
+//	AST *value = child_list->next->node; //second argument tree
 
-	switch(type){
-	case(node_ASSIGN):
-		smap_put(decls, key, (int)value);
-		if(value->type == node_STRING){
-			//stores the address of the string
-			smap_put(strings, key, (int)value->val); //conditionals may screw this up
-			store_string(key, value->val);
-		}
-		smap_put(declFrames, key, (int)env);
-		//have to remove this after environment is closed
-
-		break;
-
-	case(node_FUNCTION):
-		add_function_decl(ast);
-		if(is_top_level == 0){
-			printf("Function not on top level");
-			exit(0);
-		}
-		//add variables
-		//TODO: how to deal with function itself - STORE RETURN ADDRESS
-		break;
-
-	case(node_STRUCT):
-		break;
+	switch(current_type){
+	//Check for use before Assign - (function is already taken care of)
 	case(node_VAR):
-		if(smap_get(decls, ast->val) == -1 && smap_get(strings, key) == -1){
-			exit(0);
+		int check = smap_get(decls, newKey);
+		//TODO: Need to check for same environment
+		if(check == -1){
+			fprintf(stderr, "There is a usage before assignment for variable \"%s\"", current_string);
+			exit(1);
 		}
 		break;
 
-	case(node_CALL):
-		if(smap_get(decls, ast->val) == -1){
-			printf("There is a problem - Function called before declared");
-			exit(0);
+	//Count Stack Size for Function Frame -
+	case(node_FUNCTION):
+		AST *fn_decl_tree = child_list->node;
+		char *key = fn_decl_tree->val;
+		new_env = key;
+		//For all subsequent gather declarations of children, env = function name
+		//TODO: Store function declaration - first node on LEFT
+		if(!is_top_level){
+			fprintf(stderr, "Functions must be on the top level");
+			exit(1);
 		}
-		AST_lst *child = ast->children;
-		for(int x = AST_lst_len(child); x > 0; x --){
-			//sets the function name as environment
-			gather_decls(child->node, ast->val, 0);
+		//One is stored just as return address space
+		smap_put(stack_sizes, key, 1);
+		//Increment by number of parameters
+		smap_increment(stack_sizes, key, AST_lst_len(child_list) - 1);
+		AST_lst *parameters = fn_decl_tree->children;
+		for(int x = lookup_function_args(key); x > 0; x --){
+			smap_put(decls, str_to_scope_key(parameters->node->val, new_env), 1);
+			parameters = parameters->next;
 		}
-
 		break;
 
+	//Generate Something for the Statics AND Locals
+	case(node_ASSIGN):
+		char *key = child_list->node->val; //first argument VALUE
+		AST *value = child_list->next->node;
+		if(value->type == node_STRING){
+			store_string(key, value->val);
+		}else if(!is_top_level){
+			smap_increment(stack_sizes, env, 1);
+		} //Increment Environment
+		smap_put(decls, newKey, is_top_level);
+		//All Strings are statics
+		break;
+
+	//Default Case:
 	default:
 		break;
+	}
 
+	for(int x = AST_lst_len(child_list); x > 0; x --){
+		gather_decls(child_list->node, new_env, 0);
+		child_list = child_list->next;
 	}
-	AST_lst *current = ast->children;
-	for(int x = AST_lst_len(ast->children); x > 0; x --){
-		gather_decls(current->node, env, 0);
-		current = current->next;
-	}
+	//Check declarations recursively
 
 
 
