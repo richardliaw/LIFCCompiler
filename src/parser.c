@@ -198,7 +198,7 @@ void add_function_args(AST *ast){
 }
 
 void free_ast (AST *ptr) {
-    /* TODO: not DONE - NEED TO FREE STRINGS */
+    /* TODO: not DONE - NEED TO FREE STRINGS and STRING SCOPE KEYS */
 	//dfs
 	AST_lst *childs = ptr->children;
 	while(ptr->last_child != NULL){
@@ -249,6 +249,7 @@ void check_tree_shape(AST *ptr) {
 		fprintf(stderr, "This is a problem - Inconsistency between arg_count and expected");
 		exit(1);
 	}
+
 	for(int x = 0; x < arg_count; x++){
 		check_tree_shape(current->node);
 		current = current->next;
@@ -261,7 +262,6 @@ void store_string(char *variable, char *string){
 	current_string->string_value = string;
 	current_string->next = safe_calloc(sizeof(string_struct));
 	current_string = current_string->next;
-
 }
 
 char * str_to_scope_key(char *str, char* env){
@@ -357,7 +357,8 @@ void gather_decls(AST *ast, char *env, int is_top_level) {
 
 int lookup_arg(node_type type){
 	if(type == 0){ //TODO: may be a problem
-		printf("ERROR");
+		fprintf(stderr, "There is some error with the input - no Type");
+		exit(1);
 	}
 	int x = 0;
 	key_type_t *current = &key_table[x];
@@ -367,7 +368,6 @@ int lookup_arg(node_type type){
 		}
 		current = &key_table[++x];
 	}
-//	fprintf(stderr, "There is no such type - Incorrect Syntax");
 	return -1;
 
 }

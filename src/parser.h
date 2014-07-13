@@ -98,16 +98,26 @@ void gather_decls(AST *ast, char *env_func, int is_top_level);
 node_type lookup_keyword_enum(char *str);
 
 
+/**
+ * Adds the number of arguments a function has, as defined by the user input */
 void add_function_args(AST *ast);
 
-void add_function_decl(AST *ast);
-
+/**
+ * Stores the string in Name, Value pair in a linkedlist */
 void store_string(char *variable, char *string);
 
+/**
+ * Changes the string to a map-friendly key. The token "$" is added to the string in between
+ * the original text and the assignment scope (env) */
+char *str_to_scope_key(char *str, char* env);
+
+/**
+ * Looks up the arg_count for a keyword using table, done in O(n) time */
 int lookup_arg(node_type type);
 
-node_type lookup_keyword_enum(char *str);
-
+/**
+ * Returns the number of arguments a user-defined function has, taking in the function name as string input
+ */
 int lookup_function_args(char *fn);
 
 
