@@ -6,29 +6,35 @@
 #include "lexer.h"
 
 
-typedef enum node_type {node_INT /* integer literal */,
+typedef enum node_type {
+			node_INT /* integer literal */,
 			node_STRING /* string literal*/,
-
 			node_VAR /* Name of a variable or a function. */,
+
 			node_CALL /* A call to a function */,
 
 			/* The different built-in utilities. */
-			node_AND, //2
-			node_OR,  //2
+		//Conditionals
+			node_AND, //2 Need to deal with short-circuiting
+			node_OR,  //2 Need to deal with ^
+		//
 			node_PLUS,  //2
 			node_MINUS,  //2
 			node_MUL,   //2
 			node_DIV,  //2
+			node_NONE,
 			node_LT,  //2
 			node_EQ,  //2
+
 			node_FUNCTION,  //1
 			node_STRUCT,  //keep
 			node_ARROW,  //2
 			node_ASSIGN,  //2
-			node_IF,    //3
+			node_IF,    //3 Need to deal with ^
 			node_WHILE,  //2
 			node_FOR,   //4
 			node_SEQ,   //keeps going
+
 			node_I_PRINT,     //1
 			node_S_PRINT,     //1
 			node_READ_INT      //none
@@ -92,6 +98,10 @@ void check_tree_shape(AST *ptr);
  *  IS_TOP_LEVEL should only be set in the event that AST is not a subtree of any other
  *  abstract syntax tree. */
 void gather_decls(AST *ast, char *env_func, int is_top_level);
+/**
+ * Splits the task of gathering declarations in a function from main gathering method
+ */
+void gather_function_decls(AST *ast, char *env, int is_top_level);
 
 /** Returns the node_type corresponding to the string STR, or -1 if no node_type 
  *  corresponds. */
@@ -134,6 +144,7 @@ extern smap *stack_sizes;
 
 /** Maps from function names to the number of arguments they expect. */
 extern smap *num_args;
+
 /** Holds a reference to each of the different string literals appearing throughout 
  *  the program. */
 extern smap *strings;

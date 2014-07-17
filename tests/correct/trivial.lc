@@ -1,4 +1,5 @@
 ;test 1
+
 (stringprint "hello world")
 
 ;(assign - 3)
@@ -25,6 +26,9 @@
 
 ;(* 25 4 12)
 ; expect 1200
+
+
+(assign x (struct 2 3 4))
 
 (+ (* 3 5) (- 10 6))
 ; expect 19
@@ -57,7 +61,7 @@ size
 ; expect 10
 
 
-
+(assign (arrow x 3) 3)
 
 (assign pi 3.14159)
 (assign radius 10)
@@ -89,6 +93,12 @@ size
 (f 5)
 
 
+; (arrow 4 4)
+
+(arrow (struct 2 3 4) 4)
+
+(function (x a) (sequence (assign x 4) (+ pi 4)))
+
 (function (print_and_square x)
-  (sequence (intprint x) (square x)))
+ (sequence (intprint x) (square x)))
 (print_and_square 12)
