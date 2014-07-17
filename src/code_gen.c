@@ -85,8 +85,7 @@ void cgen(AST* tree){
 		//if return value is None, jump to end
 		//End(counter)
 		printf("end.%d: \n", current_count);
-
-		printf("end.%d")
+		//return $a0
 		return;
 	case(node_OR):
 		current_count = label_count ++;
