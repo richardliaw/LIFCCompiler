@@ -320,14 +320,20 @@ void gather_decls(AST *ast, char *env, int is_top_level) {
 		key = child_list->node->val;
 		value = child_list->next->node;
 		if(!is_top_level){
-			smap_increment(stack_sizes, env, 1);//Increment Environment if not string
-			if(value->type == node_STRUCT){
-				smap_increment(stack_sizes, env, AST_lst_len(value->children));
+			if(smap_get(decls, str_to_scope_key(key, env)) == -1){
+				if(smap_get(decls, key) == -1){
+					smap_increment(stack_sizes, env, 1);//Increment Environment if not string
+					if(value->type == node_STRUCT){
+						smap_increment(stack_sizes, env, AST_lst_len(value->children));
+
+					}
+					smap_put(decls, str_to_scope_key(key, env), smap_get(stack_sizes, env));
+				}
 			}
-			smap_put(decls, str_to_scope_key(key, env), smap_get(stack_sizes, env));
-		}
-		else{
-			smap_put(decls, key, -2);
+		}else{
+			if(smap_get(decls, key) == -1){
+				smap_put(decls, key, -2);
+			}
 		}
 		//All Strings are statics
 		break;

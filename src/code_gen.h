@@ -4,7 +4,9 @@
 #include "parser.h"
 
 /** Prints AST's string literals in the .data segment. */
-void emit_strings(AST *ast);
+//void emit_strings(AST *ast);
+
+void emit_strings();
 
 /** Prints the appropriate code to allocate space in the .data segment
  *  for whatever static memory the program uses. */
@@ -14,11 +16,18 @@ void emit_static_memory();
  *  is NOT a function definition. */
 void emit_main(AST *ast);
 
+/**
+ * Actual code generation code for nomenclature purposes
+ */
+void cgen(AST* tree);
+
 /** Prints MIPS code which will exit the program. */
 void emit_exit();
 
 /** Prints AST's code for the .text segment to stdout if the AST
  *  IS a function definition. */
 void emit_functions(AST *ast);
+
+
 
 #endif

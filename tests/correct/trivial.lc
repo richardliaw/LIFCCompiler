@@ -26,6 +26,10 @@
 
 ;(* 25 4 12)
 ; expect 1200
+(stringprint "hello world")
+(stringprint "hello world")
+(stringprint "hello world")
+(stringprint "hello worl123d")
 
 
 (assign x (struct 2 3 4))
@@ -100,5 +104,5 @@ size
 (function (x a) (sequence (assign x 4) (+ pi 4)))
 
 (function (print_and_square x)
- (sequence (intprint x) (square x)))
+ (sequence (intprint x) (stringprint "NONSENSE") (square x)))
 (print_and_square 12)

@@ -36,20 +36,13 @@ void compile(char *filename) {
     /* Initialize lexer. */
     init_lex(&luthor);
     open_file(&luthor, filename);
-    printf("Checkpoint\n");
     /* Run parser. */
     parse_init();
-    printf("Done\n");
-// 	while(luthor.type != token_END){
-//    	read_token(&luthor);
-//    	printf("%s\n", luthor.buffer);
-// 	}
     int count = 1;
     while (peek_type(&luthor) != token_END) {
 		AST *ast = build_ast(&luthor);
 		append_ast_to_top_level(ast);
 		check_tree_shape(ast);
-		printf("%d done\n", count);
 		count ++;
 		gather_decls(ast, "", 1);
 
@@ -58,11 +51,11 @@ void compile(char *filename) {
 //    /* Run code generation. */
 
     emit_strings();
-//    emit_static_memory();
-//    for (size_t i = 0; i < num_top_level_asts; i += 1) {
-//    	emit_main(top_level_asts[i]);
-//    }
-//    emit_exit();
+    emit_static_memory();
+    for (size_t i = 0; i < num_top_level_asts; i += 1) {
+    	emit_main(top_level_asts[i]);
+    }
+    emit_exit();
 //    for (size_t i = 0; i < num_top_level_asts; i += 1) {
 //    	emit_functions(top_level_asts[i]);
 //    }
@@ -83,6 +76,6 @@ int main(int argc, char* argv[]) {
 	usage();
     }
     compile(argv[1]);
-    return 0;
+    exit(0);
 }
 

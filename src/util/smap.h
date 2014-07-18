@@ -28,4 +28,12 @@ void smap_del(smap *map);
 
 /** Deallocates all of the memory allocated to the strings in MAP. */
 void smap_del_contents(smap *map);
+
+void smap_emit_statics(smap *map);
+
+
+void smap_emit_strings(smap *map);
+
+
+
 #endif

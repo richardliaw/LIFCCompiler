@@ -159,4 +159,23 @@ void smap_del_contents(smap *map) {
     }
 }
 
+void smap_emit_strings(smap *map){
+    for (size_t i = 0; i < map->num_buckets; i += 1) {
+    	for (size_t j = 0; j < map->buckets[i].num_pairs; j += 1) {
+    		if(map->buckets[i].pairs[j].key != NULL){
+    			printf("str$%d: .asciiz %s\n", map->buckets[i].pairs[j].val, map->buckets[i].pairs[j].key);
+    		}
+    	}
+    }
+    printf("\n");
+}
 
+void smap_emit_statics(smap *map){
+	for (size_t i = 0; i < map->num_buckets; i += 1) {
+		for (size_t j = 0; j < map->buckets[i].num_pairs; j += 1) {
+			if(map->buckets[i].pairs[j].val){ //TODO: CHANGE
+				printf("_%s:    .space  %d\n", map->buckets[i].pairs[j].key, 4);
+			}
+		}
+	}
+}

@@ -1,5 +1,6 @@
 #include "code_gen.h"
 #include "parser.h"
+#include <stdlib.h>
 
 /** A counter to prevent the issuance of duplicate labels. */
 unsigned label_count = 0;
@@ -8,65 +9,65 @@ int data_seg_opened = 0;
 /** True iff the text segment has already been partially printed. */
 int text_seg_opened = 0;
 
-char *env = 0;
+char *env = "";
 /*
  * It is a decision to make $a0 the key register
  */
 
 //NEED TO DETERMINE ARROW AT RUNTIME
 void emit_strings() {
-    /* TODO: Implement me. */
-	smap *map = strings;
-    for (size_t i = 0; i < map->num_buckets; i += 1) {
-    	for (size_t j = 0; j < map->buckets[i].num_pairs; j += 1) {
-    		if(map->buckets[i] != NULL){
-    			printf("str$%d: .asciiz \"%s\"\n", map->buckets[i].pairs[j].val, map->buckets[i].pairs[j].key);
-    		}
-    	}
-    }
+	if(data_seg_opened == 0){
+		printf("\t .data\n");
+		data_seg_opened = 1;
+	}
+    smap_emit_strings(strings);
+    printf("\n");
+
+//	if(node_TYPE )
 }
 
 void return_None(){
-	printf("addiu $a0, $0, $0\n");
+	printf("\t add $a0, $0, $0  #return_None\n");
 }
 
 void push(){
-	printf("addiu $sp, $sp, -4\n");
-	printf("sw $a0, 0($sp)\n");
+	printf("\taddi $sp, $sp, -4 #push\n");
+	printf("\tsw $a0, 0($sp)\n\n");
 }
 
 void pop(int regstr){
-	printf("lw $t%d, 0($sp)\n", regstr);
-	printf("addiu $sp, $sp, 4\n");
+	printf("\tlw $t%d, 0($sp) #pop\n", regstr);
+	printf("\taddiu $sp, $sp, 4\n\n");
 }
 
 void cgen_simple(AST* tree){
 	node_type type = tree->type;
-	char *check;
+	char check[10];
 	pop(0);
 	pop(1);
 	switch(type){
 	case(node_PLUS):
-		check = "add";
+		strcpy(check, "add");
 		break;
 	case(node_MINUS):
-		check = "sub";
+		strcpy(check,"sub");
 		break;
 	case(node_LT):
-		check = "slt";
+		strcpy(check,"slt");
 		break;
 	case(node_MUL):
-		printf("mul $t%d, $t%d\n", 0, 1);
-		printf("mflo $a0\n");
-		return;
+		strcpy(check,"mul");
+		break;
 	case(node_DIV):
-		printf("div $t%d, $t%d\n", 0, 1);
-		printf("mflo $a0\n");
+		printf("\tdiv $t%d, $t%d\n", 1, 0);
+		printf("\tmflo $a0\n");
 		return;
 	default:
+		fprintf(stderr, "Should not have reached this step for this Nodetype");
+		exit(1);
 		break;
 	}
-	printf("%s $a0, $t%d, $t%d", check, 0, 1);
+	printf("\t %s $a0, $t%d, $t%d\n", check, 1, 0);
 }
 
 void cgen_pre_eval(AST *tree, int current_count){
@@ -77,25 +78,25 @@ void cgen_pre_eval(AST *tree, int current_count){
 			printf("beq $a0, $0, end$%d\n", current_count);	//if return value is None, jump to end
 			push();
 			cgen(tree->children->next->node); //evaluate the second operand
-			printf("end$%d: \n", current_count); //End(counter)
+			printf("\t end$%d: \n", current_count); //End(counter)
 			break;
 
 		case(node_OR):
 			cgen(tree->children->node);
 
-			printf("bne $a0, $0, end$%d\n", current_count);
+			printf("\t bne $a0, $0, end$%d\n", current_count);
 			push();
 			cgen(tree->children->next->node);
-			printf("end$%d: \n", current_count);
+			printf("\t end$%d: \n", current_count);
 			break;
 		case(node_IF):
 			//evaluate the first operand
 			cgen(tree->children->node);
-			printf("beq $a0, $0, if_false$%d\n", current_count);
+			printf("\t beq $a0, $0, if_false$%d\n", current_count);
 
 			printf("if_true$%d: \n", current_count);
 			cgen(tree->children->next->node);
-			printf("j if_end$%d\n", current_count);
+			printf("\t j if_end$%d\n", current_count);
 
 			printf("if_false$%d: \n", current_count);
 			cgen(tree->children->next->next->node);
@@ -111,7 +112,7 @@ void cgen_pre_eval(AST *tree, int current_count){
 
 
 			cgen(tree->children->next->node);
-			printf("j while$%d", current_count);
+			printf("\t j while$%d", current_count);
 
 			printf("while_end$%d: \n", current_count);
 			return_None();
@@ -124,7 +125,7 @@ void cgen_pre_eval(AST *tree, int current_count){
 			cgen(tree->children->node);
 			//Evaluate Predicate
 			cgen(tree->children->next->node);
-			printf("\tbeq $a0, $0, end$%d\n",current_count)
+			printf("\tbeq $a0, $0, end$%d\n",current_count);
 			//if condition meet, jump to end
 			//Evaluate Body
 			cgen(tree->children->next->next->node);
@@ -159,6 +160,8 @@ void cgen(AST* tree){
 		current_child = current_child->next;
 	}
 
+	char variable_check[strlen(tree->val) + strlen(env) + 2]; //check for
+	char global_check[strlen(tree->val) + 2];
 	switch(type){
 		case(node_NONE):
 			return_None();
@@ -166,10 +169,14 @@ void cgen(AST* tree){
 
 		/*==============PRINT CASES================*/
 		case(node_S_PRINT):
+			pop(0);
+			printf("\t move $a0, $t0\n");
 			printf("\tli $v0, 4\n");
 			printf("\tsyscall\n");
 			break;
 		case(node_I_PRINT):
+			pop(0);
+			printf("\t move $a0, $t0\n");
 			printf("\tli $v0, 1\n");
 			printf("\tsyscall\n");
 			break;
@@ -185,22 +192,22 @@ void cgen(AST* tree){
 			break;
 		case(node_STRING):
 			//loads string address into accumulator
-			printf("\tla $a0, str$%d\n", smap_get(tree->val));
+			printf("\tla $a0, str$%d\n", smap_get(strings, tree->val));
 			break;
 		case(node_VAR):
-			int len = strlen(tree->val);
-			len += strlen(env);
-			char check[len + 2];
-			strcpy(check, tree->val);
-			strcat(check, "$");
-			strcat(check, env);
-			if(smap_get(decls, check) != -1){
-				printf("\tlw $a0, %d($fp)\n", smap_get(decls, check)*4);
+			strcpy(variable_check, tree->val);
+			strcat(variable_check, "$");
+			strcat(variable_check, env);
+
+			strcpy(global_check, "_");
+			strcat(global_check, tree->val);
+			if(smap_get(decls, variable_check) != -1){
+				printf("\tlw $a0, %d($fp)\n", smap_get(decls, variable_check)*4);
 			}else if(smap_get(decls, tree->val) == -1){
-				fprintf("There is a problem with assigning this variable");
+				fprintf(stderr, "There is a problem with assigning this variable");
 				exit(1);
 			}else{
-				printf("\tlw $a0, _%s\n", tree->val);
+				printf("\tlw $a0, %s\n", global_check);
 			}
 			break;
 		case(node_CALL):
@@ -225,10 +232,10 @@ void cgen(AST* tree){
 			pop(1);
 			printf("\t beq $t0, $t1, equal_true$%d\n", current_count);
 			printf("\t li $a0 0\n");
-			printf("\t j equal_end$%d\n");
+			printf("\t j equal_end$%d\n", current_count);
 			printf("equal_true$%d: \n", current_count);
 			printf("\t li $a0 1\n");
-			printf("equal_end$%d: \n");
+			printf("equal_end$%d: \n", current_count);
 			break;
 		case(node_STRUCT):
 			//need to return POINTER to struct
@@ -244,7 +251,7 @@ void cgen(AST* tree){
 			pop(0);
 			//pop second item (struct address)
 			pop(1);
-			printf("\t addiu $t2, $0, 4\n")
+			printf("\t addiu $t2, $0, 4\n");
 			printf("\t mul $t0, $t2\n");
 			printf("\t mflo $t2\n");
 			printf("\t add $a0, $t1, $t0\n");
@@ -252,22 +259,22 @@ void cgen(AST* tree){
 		case(node_ASSIGN):
 
 			pop(0);
-			int len = strlen(tree->val);
-			len += strlen(env);
-			char check[len + 2];
-			strcpy(check, tree->val);
-			strcat(check, "$");
-			strcat(check, env);
 
-			if(smap_get(decls, check) != -1){
-				printf("\t sw $t0, %d($fp)\n", smap_get(decls, check) *4);
-			}else if(smap_get(decls, tree->val) == -1){
-					fprintf("There is a problem with assigning this variable");
+			strcpy(variable_check, tree->children->node->val);
+			strcat(variable_check, "$");
+			strcat(variable_check, env);
+
+			strcpy(global_check, "_");
+			strcat(global_check, tree->children->node->val);
+			if(smap_get(decls, variable_check) != -1){
+				printf("\t sw $t0, %d($fp)\n", smap_get(decls, variable_check) *4);
+			}else if(smap_get(decls, tree->children->node->val) == -1){
+					fprintf(stderr, "There is a problem with ASSIGNING this variable");
 					exit(1);
 			}else{
-				printf("\t sw $t0, _%s\n", tree->val);
+				printf("\t sw $t0, %s\n", global_check);
 			}
-			printf("\t add $a0, $0, $t0\n");
+			printf("\tadd $a0, $0, $t0\n");
 			break;
 
 		case(node_SEQ):
@@ -283,25 +290,19 @@ void emit_static_memory() {
 	//TODO: Check all top-level AST for assignments and function declarations
 	//loop through all static variables in hashmap
 	//Hash memory to a number - corresponding to the line emitted
-	smap *map = decls;
-	for (size_t i = 0; i < map->num_buckets; i += 1) {
-		for (size_t j = 0; j < map->buckets[i].num_pairs; j += 1) {
-			if(map->buckets[i]->pairs->val == -2){
-				printf("_%s:    .space  %d\n", map->buckets[i]->pairs->key, 4);
-			}
-		}
-	}
-
-
-	printf("\n");
-	printf("\t \t .text\n");
-	printf("main: \n");
+	smap_emit_statics(decls);
 
 
 }
 
 void emit_main(AST *ast) {
 	//initialize the stackframe
+	if(text_seg_opened == 0){
+		printf("\n");
+		printf("\t.text\n");
+		printf("main: \n");
+		text_seg_opened = 1;
+	}
 	if(ast->type == node_FUNCTION){
 		return;
 	}
@@ -335,8 +336,6 @@ void emit_exit() {
 //	}
 //	printf("addiu $sp, $sp, 100"); //restores everything
 
-}
-
 
 /*
  * The frame pointer will point to the beginning of the frame
@@ -354,7 +353,7 @@ void emit_functions(AST *ast) {
 	printf("\t move $fp, $sp\n");
 	printf("\t sw $ra, 0($fp)\n");
 
-	cgen(ast->last_child);
+	cgen(ast->last_child->node);
 
 	printf("\t move $sp, $fp\n");
 	printf("\t addiu $sp, $sp, -%d\n", smap_get(stack_sizes, ast->children->node->val));
