@@ -48,7 +48,7 @@ typedef struct string_node string_struct;
 
 struct string_node{
 	char *string_value;
-	char *name;
+	string_struct *prev;
 	string_struct *next;
 };
 
@@ -58,12 +58,7 @@ struct key_type {
 	int args;
 };
 
-struct map_list{
-	char *string_value;
-	char *name;
-	string_struct *next;
-};
-
+char *env;
 
 struct AST {
     node_type type; /* The type of  */
@@ -151,9 +146,5 @@ extern smap *strings;
 
 extern smap *keyword_str_to_enum;
 
-
-extern string_struct *string_list;
-
-extern string_struct *current_string;
 
 #endif

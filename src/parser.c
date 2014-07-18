@@ -49,7 +49,7 @@ int enums[] = {
 	    node_READ_INT};
 
 
-
+unsigned int str_counter = 0;
 smap *decls;
 smap *stack_sizes;
 smap *num_args;
@@ -274,16 +274,6 @@ void check_tree_shape(AST *ptr) {
 
 }
 
-void check_args(AST *structure){
-
-}
-
-void store_string(char *variable, char *string){
-	current_string->name = variable;
-	current_string->string_value = string;
-	current_string->next = safe_calloc(sizeof(string_struct));
-	current_string = current_string->next;
-}
 
 char * str_to_scope_key(char *str, char* env){
 	char *newKey = safe_calloc(sizeof(char)*(strlen(str) + strlen(env) + 2));
@@ -321,21 +311,23 @@ void gather_decls(AST *ast, char *env, int is_top_level) {
 	//Count Stack Size for Function Frame -
 	case(node_FUNCTION):
 		return (gather_function_decls(ast, env, is_top_level));
-
+	case(node_STRING):
+		smap_put(strings, ast->val, str_counter);
+		str_counter ++;
+		break;
 	//Generate Something for the Statics AND Locals
 	case(node_ASSIGN):
 		key = child_list->node->val;
 		value = child_list->next->node;
-		if(value->type == node_STRING){
-			store_string(key, value->val);
-		}else if(!is_top_level){
-			smap_increment(stack_sizes, env, 1);//Increment Environment if not string
-		}
 		if(!is_top_level){
-			smap_put(decls, str_to_scope_key(key, env), is_top_level);
+			smap_increment(stack_sizes, env, 1);//Increment Environment if not string
+			if(value->type == node_STRUCT){
+				smap_increment(stack_sizes, env, AST_lst_len(value->children));
+			}
+			smap_put(decls, str_to_scope_key(key, env), smap_get(stack_sizes, env));
 		}
 		else{
-			smap_put(decls, key, is_top_level);
+			smap_put(decls, key, -2);
 		}
 		//All Strings are statics
 		break;
@@ -370,10 +362,10 @@ void gather_function_decls(AST *ast, char *env, int is_top_level){
 	//One is stored just as return address space
 	smap_put(stack_sizes, new_env, 1);
 	//Increment by number of parameters
-	smap_increment(stack_sizes, new_env, lookup_function_args(new_env));
 	AST_lst *parameters = fn_decl_tree->children;
 	for(int x = lookup_function_args(new_env); x > 0; x --){
-		smap_put(decls, str_to_scope_key(parameters->node->val, new_env), 0);
+		smap_increment(stack_sizes, new_env, 1);
+		smap_put(decls, str_to_scope_key(parameters->node->val, new_env), smap_get(stack_sizes, new_env));
 		parameters = parameters->next;
 	}
 	printf("Added New Function \"%s\"\n", new_env);
