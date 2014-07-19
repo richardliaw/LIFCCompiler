@@ -317,14 +317,15 @@ void gather_decls(AST *ast, char *env, int is_top_level) {
 		break;
 	//Generate Something for the Statics AND Locals
 	case(node_ASSIGN):
-		key = child_list->node->val;
+		key = child_list->node->val; //variable name
 		value = child_list->next->node;
 		if(!is_top_level){
 			if(smap_get(decls, str_to_scope_key(key, env)) == -1){
 				if(smap_get(decls, key) == -1){
-					smap_increment(stack_sizes, env, 1);//Increment Environment if not string
+					smap_increment(stack_sizes, env, 1);//Increment Environment if variable is local
 					if(value->type == node_STRUCT){
-						smap_increment(stack_sizes, env, AST_lst_len(value->children));
+						//first item of struct in mips is first element
+						smap_increment(stack_sizes, env, AST_lst_len(value->children) - 1);
 
 					}
 					smap_put(decls, str_to_scope_key(key, env), smap_get(stack_sizes, env));
@@ -374,7 +375,7 @@ void gather_function_decls(AST *ast, char *env, int is_top_level){
 		smap_put(decls, str_to_scope_key(parameters->node->val, new_env), smap_get(stack_sizes, new_env));
 		parameters = parameters->next;
 	}
-	printf("Added New Function \"%s\"\n", new_env);
+//	printf("Added New Function \"%s\"\n", new_env);
 	gather_decls(child_list->next->node, new_env, 0);
 }
 

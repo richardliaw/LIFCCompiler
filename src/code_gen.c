@@ -31,13 +31,13 @@ void return_None(){
 }
 
 void push(){
-	printf("\taddi $sp, $sp, -4 #push\n");
-	printf("\tsw $a0, 0($sp)\n\n");
+	printf("\t addi $sp, $sp, -4 #push\n");
+	printf("\t sw $a0, 0($sp)\n\n");
 }
 
 void pop(int regstr){
-	printf("\tlw $t%d, 0($sp) #pop\n", regstr);
-	printf("\taddiu $sp, $sp, 4\n\n");
+	printf("\t lw $t%d, 0($sp) #pop\n", regstr);
+	printf("\t addiu $sp, $sp, 4\n\n");
 }
 
 void cgen_simple(AST* tree){
@@ -59,8 +59,8 @@ void cgen_simple(AST* tree){
 		strcpy(check,"mul");
 		break;
 	case(node_DIV):
-		printf("\tdiv $t%d, $t%d\n", 1, 0);
-		printf("\tmflo $a0\n");
+		printf("\t div $t%d, $t%d\n", 1, 0);
+		printf("\t mflo $a0\n");
 		return;
 	default:
 		fprintf(stderr, "Should not have reached this step for this Nodetype");
@@ -75,19 +75,22 @@ void cgen_pre_eval(AST *tree, int current_count){
 	switch(type){
 		case(node_AND):
 			cgen(tree->children->node);	//evaluate the first operand
-			printf("beq $a0, $0, end$%d\n", current_count);	//if return value is None, jump to end
-			push();
+			printf("\t beq $a0, $0, end$%d\n", current_count);	//if return value is None, jump to end
 			cgen(tree->children->next->node); //evaluate the second operand
-			printf("\t end$%d: \n", current_count); //End(counter)
+			printf("\t beq $a0, $0, end$%d\n", current_count);
+			printf("\t li $a0, 1\n");
+			printf("end$%d: \n", current_count); //End(counter)
 			break;
 
 		case(node_OR):
 			cgen(tree->children->node);
-
-			printf("\t bne $a0, $0, end$%d\n", current_count);
-			push();
+			printf("\t bne $a0, $0, end_check$%d\n", current_count);
 			cgen(tree->children->next->node);
-			printf("\t end$%d: \n", current_count);
+			printf("\t bne $a0, $0, end_check$%d\n", current_count);
+			printf("\t beq $a0, $0, end$%d\n", current_count);
+			printf("end_check$%d: \n", current_count);
+			printf("\t li $a0, 1\n");
+			printf("end$%d: \n", current_count);
 			break;
 		case(node_IF):
 			//evaluate the first operand
@@ -108,12 +111,11 @@ void cgen_pre_eval(AST *tree, int current_count){
 			//evaluate first operand - predicate
 			printf("while$%d: \n", current_count);
 			cgen(tree->children->node);
-			printf("\tbeq $a0, $0, while_end$%d\n", current_count);
+			printf("\t beq $a0, $0, while_end$%d\n", current_count);
 
 
 			cgen(tree->children->next->node);
-			printf("\t j while$%d", current_count);
-
+			printf("\t j while$%d\n", current_count);
 			printf("while_end$%d: \n", current_count);
 			return_None();
 			break;
@@ -121,16 +123,17 @@ void cgen_pre_eval(AST *tree, int current_count){
 			return_None();
 			return;
 		case(node_FOR):
-			//evaluate Init
+		//evaluate Init
 			cgen(tree->children->node);
-			//Evaluate Predicate
+			printf("forloop$%d: \n", current_count); //loop initialization
+		//Evaluate Predicate
 			cgen(tree->children->next->node);
-			printf("\tbeq $a0, $0, end$%d\n",current_count);
-			//if condition meet, jump to end
-			//Evaluate Body
+			printf("\t beq $a0, $0, end$%d\n",current_count); //if condition meet, jump to end
+		//Evaluate BODY
+			cgen(tree->last_child->node);
+		//Evaluate Increment
 			cgen(tree->children->next->next->node);
-			//Evaluate Increment, loop to Predicate
-			return_None();
+			printf("\t j forloop$%d\n", current_count);
 			//end
 			printf("end$%d: \n", current_count);
 			return_None();
@@ -171,28 +174,30 @@ void cgen(AST* tree){
 		case(node_S_PRINT):
 			pop(0);
 			printf("\t move $a0, $t0\n");
-			printf("\tli $v0, 4\n");
-			printf("\tsyscall\n");
+			printf("\t li $v0, 4\n");
+			printf("\t syscall\n");
+			return_None();
 			break;
 		case(node_I_PRINT):
 			pop(0);
 			printf("\t move $a0, $t0\n");
-			printf("\tli $v0, 1\n");
-			printf("\tsyscall\n");
+			printf("\t li $v0, 1\n");
+			printf("\t syscall\n");
+			return_None();
 			break;
 		case(node_READ_INT):
-			printf("\tli $v0, 5\n");
-			printf("\tsyscall\n");
-			printf("\tmove $a0 $v0");
+			printf("\t li $v0, 5\n");
+			printf("\t syscall\n");
+			printf("\t move $a0 $v0\n");
 			break;
 
 		/*================DATA CASES================*/
 		case(node_INT):
-			printf("\tli $a0, %s\n", tree->val);
+			printf("\t li $a0, %s\n", tree->val);
 			break;
 		case(node_STRING):
 			//loads string address into accumulator
-			printf("\tla $a0, str$%d\n", smap_get(strings, tree->val));
+			printf("\t la $a0, str$%d\n", smap_get(strings, tree->val));
 			break;
 		case(node_VAR):
 			strcpy(variable_check, tree->val);
@@ -202,16 +207,16 @@ void cgen(AST* tree){
 			strcpy(global_check, "_");
 			strcat(global_check, tree->val);
 			if(smap_get(decls, variable_check) != -1){
-				printf("\tlw $a0, %d($fp)\n", smap_get(decls, variable_check)*4);
+				printf("\t lw $a0, %d($fp)\n", smap_get(decls, variable_check)*4);
 			}else if(smap_get(decls, tree->val) == -1){
 				fprintf(stderr, "There is a problem with assigning this variable");
 				exit(1);
 			}else{
-				printf("\tlw $a0, %s\n", global_check);
+				printf("\t lw $a0, %s\n", global_check);
 			}
 			break;
 		case(node_CALL):
-			printf("\tjal %s\n", tree->val);
+			printf("\t jal %s\n", tree->val);
 			break;
 
 
@@ -238,8 +243,15 @@ void cgen(AST* tree){
 			printf("equal_end$%d: \n", current_count);
 			break;
 		case(node_STRUCT):
+			if(is in global scope){
+				return current stack pointer minus 4*number of objects
+			}
+			if (in local scope){
+				pop each item on stack,
+				add to correct location in frame
+				return frame pointer + 4 * number of fields in struct
+			}
 			//need to return POINTER to struct
-			//TODO: FIX PARSER TO MOVE FP ENOUGH
 
 			//because other operands needed to have been evaluated
 			//Store amount into the stack, return sp address
@@ -249,11 +261,10 @@ void cgen(AST* tree){
 		case(node_ARROW):
 			//pop first item (counter)
 			pop(0);
-			//pop second item (struct address)
+			//pop second item (struct address first item)
 			pop(1);
 			printf("\t addiu $t2, $0, 4\n");
-			printf("\t mul $t0, $t2\n");
-			printf("\t mflo $t2\n");
+			printf("\t mul $t2, $t0, $t2\n");
 			printf("\t add $a0, $t1, $t0\n");
 			break;
 		case(node_ASSIGN):
@@ -274,7 +285,7 @@ void cgen(AST* tree){
 			}else{
 				printf("\t sw $t0, %s\n", global_check);
 			}
-			printf("\tadd $a0, $0, $t0\n");
+			printf("\t add $a0, $0, $t0\n");
 			break;
 
 		case(node_SEQ):
@@ -299,7 +310,7 @@ void emit_main(AST *ast) {
 	//initialize the stackframe
 	if(text_seg_opened == 0){
 		printf("\n");
-		printf("\t.text\n");
+		printf("\t .text\n");
 		printf("main: \n");
 		text_seg_opened = 1;
 	}

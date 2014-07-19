@@ -79,7 +79,7 @@ void read_token(lexer *lex) {
 		};
 		read_token(lex);
 		return;
-
+	case '\t':
 	case '\n':
 		read_token(lex);
 		return;
